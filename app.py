@@ -1,5 +1,5 @@
 # =========================================================
-# 🚀 VERSION: V16.1 FINAL (WEB STABLE + NO IFRAME)
+# 🚀 VERSION: V16.1.2 FINAL (STABLE WEB + FIXED UI)
 # =========================================================
 
 import streamlit as st
@@ -79,6 +79,20 @@ def detect_receiver(text):
         return "Janniki"
 
     return None
+
+# =========================================================
+# 🔥 PDF PREVIEW (SAFE IMAGE RENDER)
+# =========================================================
+def render_pdf_preview(pdf_bytes):
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        page = doc[0]
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        img_bytes = pix.tobytes("png")
+        doc.close()
+        return img_bytes
+    except:
+        return None
 
 # =========================================================
 # STAMP FUNCTION
@@ -210,10 +224,7 @@ if pdf_bytes:
             for p in pdf.pages:
                 text += p.extract_text() or ""
     except:
-        st.error("PDF read error")
-
-    if not text.strip():
-        st.warning("No text detected (scanned PDF?)")
+        st.warning("PDF text extraction failed (scan?)")
 
     for line in text.split("\n")[:20]:
         if "d.o.o" in line.lower():
@@ -224,13 +235,8 @@ if pdf_bytes:
     if detected and not st.session_state.receiver_company:
         st.session_state.receiver_company = detected
 
-    comp = st.session_state.company.lower()
-    for key, value in COMPANY_DOC_MAP.items():
-        if key in comp:
-            st.session_state.prefix = value
-
 # =========================================================
-# FILENAME MIRROR
+# FILENAME
 # =========================================================
 final_name = generate_filename()
 
@@ -246,17 +252,7 @@ st.markdown(f"""
 col1, col2 = st.columns([1.6,1])
 
 with col2:
-
-    if "doc_type_label" not in st.session_state:
-        st.session_state.doc_type_label = list(DOCUMENT_TYPES.keys())[0]
-
-    selected_label = st.selectbox(
-        "Document Type",
-        list(DOCUMENT_TYPES.keys()),
-        index=list(DOCUMENT_TYPES.keys()).index(st.session_state.doc_type_label)
-    )
-
-    st.session_state.doc_type_label = selected_label
+    selected_label = st.selectbox("Document Type", list(DOCUMENT_TYPES.keys()))
     st.session_state.prefix = DOCUMENT_TYPES[selected_label]
 
     st.session_state.date_inv_issued = st.date_input("Invoice Issue Date", st.session_state.date_inv_issued)
@@ -268,17 +264,14 @@ with col2:
     reg_input = st.text_input("Registration No.", st.session_state.registration_no)
     st.session_state.registration_no = re.sub(r"\D","",reg_input).zfill(6)
 
-    receiver_options = ["-- Select --","Janniki","InoCore","Cesi"]
-
+    receiver_options = ["Janniki","InoCore","Cesi"]
     current = st.session_state.receiver_company
 
-    selected_receiver = st.radio(
+    st.session_state.receiver_company = st.radio(
         "Receiver",
         receiver_options,
         index=receiver_options.index(current) if current in receiver_options else 0
     )
-
-    st.session_state.receiver_company = None if selected_receiver == "-- Select --" else selected_receiver
 
 # =========================================================
 # MOVE BUTTONS + RESET
@@ -313,20 +306,22 @@ with col_download:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=final_name)
 
 # =========================================================
-# PREVIEW (NO IFRAME)
+# PREVIEW (IMAGE SAFE)
 # =========================================================
 with col1:
     if active_pdf:
         st.success("PDF ready ✔")
 
-        st.download_button(
-            "📄 Open PDF Preview",
-            active_pdf,
-            file_name="preview.pdf"
-        )
+        preview_img = render_pdf_preview(active_pdf)
+
+        if preview_img:
+            st.image(preview_img, use_container_width=True)
+            st.caption("Preview (first page)")
+        else:
+            st.warning("Preview not available")
 
 # =========================================================
-# DEBUG PANEL
+# DEBUG
 # =========================================================
 with st.expander("🔧 Debug"):
     st.write("Company:", st.session_state.company)
@@ -334,5 +329,5 @@ with st.expander("🔧 Debug"):
     st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
-# 🟢 VERSION END: V16.1 FINAL
+# 🟢 VERSION END: V16.1.2 FINAL
 # =========================================================
