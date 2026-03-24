@@ -1,5 +1,5 @@
 # =========================================================
-# 🚀 VERSION: V16.1.2 FINAL (STABLE WEB + FIXED UI)
+# 🚀 VERSION: V16.1.3 FINAL (PDF.js + FALLBACK PREVIEW)
 # =========================================================
 
 import streamlit as st
@@ -8,6 +8,7 @@ import re
 import io
 import os
 import fitz
+import base64
 from PIL import Image
 from datetime import datetime
 
@@ -35,10 +36,6 @@ DOCUMENT_TYPES = {
     "other": "000"
 }
 
-COMPANY_DOC_MAP = {
-    "grenke": "120",
-}
-
 # =========================================================
 # STYLE
 # =========================================================
@@ -46,7 +43,8 @@ st.markdown("""
 <style>
 header {visibility:hidden;}
 .block-container {padding-top:80px;padding-left:40px;padding-right:40px;}
-.preview-box {background:#0e1117;padding:16px;border-radius:12px;border:1px solid #2a2d36;}
+.preview-box {background:#0e1117;padding:16px;border-radius:12px;border:1px solid #2a2d36; position:relative;}
+#text-layer {pointer-events:auto;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -70,19 +68,14 @@ def generate_filename():
 
 def detect_receiver(text):
     normalized = re.sub(r"[^a-z]", "", text.lower())
-
     if "cesi" in normalized:
         return "Cesi"
     if "inocore" in normalized:
         return "InoCore"
     if "janniki" in normalized:
         return "Janniki"
-
     return None
 
-# =========================================================
-# 🔥 PDF PREVIEW (SAFE IMAGE RENDER)
-# =========================================================
 def render_pdf_preview(pdf_bytes):
     try:
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -100,28 +93,23 @@ def render_pdf_preview(pdf_bytes):
 def insert_stamp(pdf_bytes):
 
     receiver = st.session_state.receiver_company
-
     if not receiver:
         return pdf_bytes
 
     stamp_path = STAMP_MAP.get(receiver)
-
     if not stamp_path or not os.path.exists(stamp_path):
-        st.error(f"Missing stamp: {stamp_path}")
         return pdf_bytes
 
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     page = doc[0]
 
     target_width = int(page.rect.width * 0.25)
-
     if receiver in ["InoCore", "Cesi"]:
         target_width = int(target_width * 1.1)
 
     img = Image.open(stamp_path)
     ratio = target_width / img.width
     target_height = int(img.height * ratio)
-
     img = img.resize((target_width, target_height), Image.LANCZOS)
 
     img_bytes = io.BytesIO()
@@ -217,19 +205,13 @@ pdf_bytes = st.session_state.get("pdf_bytes")
 # PROCESS PDF
 # =========================================================
 text = ""
-
 if pdf_bytes:
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             for p in pdf.pages:
                 text += p.extract_text() or ""
     except:
-        st.warning("PDF text extraction failed (scan?)")
-
-    for line in text.split("\n")[:20]:
-        if "d.o.o" in line.lower():
-            st.session_state.company = line.strip()
-            break
+        pass
 
     detected = detect_receiver(text)
     if detected and not st.session_state.receiver_company:
@@ -306,28 +288,62 @@ with col_download:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=final_name)
 
 # =========================================================
-# PREVIEW (IMAGE SAFE)
+# PREVIEW (PDF.js + FALLBACK)
 # =========================================================
 with col1:
     if active_pdf:
-        st.success("PDF ready ✔")
 
+        pdf_base64 = base64.b64encode(active_pdf).decode()
+
+        st.markdown(f"""
+        <div class="preview-box">
+            <canvas id="pdf-canvas"></canvas>
+            <div id="text-layer"></div>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+        <script>
+        const pdfData = atob("{pdf_base64}");
+        const loadingTask = pdfjsLib.getDocument({{data: pdfData}});
+
+        loadingTask.promise.then(function(pdf) {{
+            pdf.getPage(1).then(function(page) {{
+
+                const scale = 1.5;
+                const viewport = page.getViewport({{ scale: scale }});
+
+                const canvas = document.getElementById('pdf-canvas');
+                const context = canvas.getContext('2d');
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                page.render({{
+                    canvasContext: context,
+                    viewport: viewport
+                }});
+
+                page.getTextContent().then(function(textContent) {{
+                    pdfjsLib.renderTextLayer({{
+                        textContent: textContent,
+                        container: document.getElementById('text-layer'),
+                        viewport: viewport,
+                        textDivs: []
+                    }});
+                }});
+            }});
+        }}).catch(function(error) {{
+            console.log("PDF.js failed");
+        }});
+        </script>
+        """, unsafe_allow_html=True)
+
+        # FALLBACK
         preview_img = render_pdf_preview(active_pdf)
-
         if preview_img:
             st.image(preview_img, use_container_width=True)
-            st.caption("Preview (first page)")
-        else:
-            st.warning("Preview not available")
 
 # =========================================================
-# DEBUG
-# =========================================================
-with st.expander("🔧 Debug"):
-    st.write("Company:", st.session_state.company)
-    st.write("Receiver:", st.session_state.receiver_company)
-    st.write("Prefix:", st.session_state.prefix)
-
-# =========================================================
-# 🟢 VERSION END: V16.1.2 FINAL
+# 🟢 VERSION END: V16.1.3 FINAL
 # =========================================================
