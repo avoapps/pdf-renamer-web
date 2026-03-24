@@ -1,11 +1,12 @@
 # =========================================================
-# 🚀 VERSION: V16.1 FINAL (WEB STABLE + NO IFRAME)
+# 🚀 VERSION: V16.0 FINAL (WEB READY BASE)
 # =========================================================
 
 import streamlit as st
 import pdfplumber
 import re
 import io
+import base64
 import os
 import fitz
 from PIL import Image
@@ -30,7 +31,7 @@ DOCUMENT_TYPES = {
     "122 | foreign expense": "122",
     "123 | card": "123",
     "150 | domestic cumulative": "150",
-    "151 | foreign cumulative": "151",
+    "151 | forengin cumulative": "151",
     "190 | foreign goods": "190",
     "other": "000"
 }
@@ -174,7 +175,8 @@ defaults = {
     "receiver_company": None,
     "pdf_bytes": None,
     "stamp_offset_x": 0,
-    "stamp_offset_y": 0
+    "stamp_offset_y": 0,
+    "debug": False
 }
 
 for k, v in defaults.items():
@@ -288,17 +290,26 @@ st.markdown("---")
 if pdf_bytes:
     cols = st.columns([1,1,1,1,1], gap="small")
 
-    if cols[0].button("⬅"):
-        st.session_state.stamp_offset_x -= 20
-    if cols[1].button("➡"):
-        st.session_state.stamp_offset_x += 20
-    if cols[2].button("⬆"):
-        st.session_state.stamp_offset_y -= 20
-    if cols[3].button("⬇"):
-        st.session_state.stamp_offset_y += 20
-    if cols[4].button("Reset"):
-        st.session_state.stamp_offset_x = 0
-        st.session_state.stamp_offset_y = 0
+    with cols[0]:
+        if st.button("⬅"):
+            st.session_state.stamp_offset_x -= 20
+
+    with cols[1]:
+        if st.button("➡"):
+            st.session_state.stamp_offset_x += 20
+
+    with cols[2]:
+        if st.button("⬆"):
+            st.session_state.stamp_offset_y -= 20
+
+    with cols[3]:
+        if st.button("⬇"):
+            st.session_state.stamp_offset_y += 20
+
+    with cols[4]:
+        if st.button("Reset"):
+            st.session_state.stamp_offset_x = 0
+            st.session_state.stamp_offset_y = 0
 
 # =========================================================
 # ACTIVE PDF
@@ -313,22 +324,17 @@ with col_download:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=final_name)
 
 # =========================================================
-# PREVIEW (NO IFRAME)
+# PREVIEW
 # =========================================================
 with col1:
     if active_pdf:
-        st.success("PDF ready ✔")
-
-        st.download_button(
-            "📄 Open PDF Preview",
-            active_pdf,
-            file_name="preview.pdf"
-        )
+        b64 = base64.b64encode(active_pdf).decode()
+        st.markdown(f"<div class='preview-box'><iframe src='data:application/pdf;base64,{b64}' width='100%' height='800px'></iframe></div>", unsafe_allow_html=True)
 
 # =========================================================
-# DEBUG PANEL
+# DEBUG PANEL (FOR FUTURE LEARNING)
 # =========================================================
-with st.expander("🔧 Debug"):
+with st.expander("🔧 Debug (for learning phase)"):
     st.write("Company:", st.session_state.company)
     st.write("Receiver:", st.session_state.receiver_company)
     st.write("Prefix:", st.session_state.prefix)
