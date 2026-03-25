@@ -427,7 +427,8 @@ with col1:
                     bottom: 0;
                     overflow: hidden;
                     line-height: 1;
-                    transform-origin: 0 0;
+                    /* FIX: prevent double text rendering (canvas + textLayer) */
+                    transform-origin: 0 0; 
                 }}
 
                 .textLayer span {{
@@ -560,6 +561,12 @@ with st.expander("🔧 Debug (for learning phase)"):
     st.write("Company:", st.session_state.company)
     st.write("Receiver:", st.session_state.receiver_company)
     st.write("Prefix:", st.session_state.prefix)
+
+# =========================================================
+#(git add 
+#git commit -m "update"
+#git push
+
 
 # =========================================================
 # 🟢 VERSION END: V16.3.3 FINAL
