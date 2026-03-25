@@ -1,5 +1,5 @@
 # =========================================================
-# 🚀 VERSION: V16.3 FINAL (WEB READY BASE)
+# 🚀 VERSION: V16.3.1 FINAL (STABLE)
 # =========================================================
 
 import streamlit as st
@@ -17,7 +17,7 @@ st.set_page_config(layout="wide")
 # =========================================================
 # 🟢 APP VERSION VIEWER
 # =========================================================
-APP_VERSION = "V16.3.0"
+APP_VERSION = "AvoAPP: V16.3.1"
 
 st.markdown(f"""
 <div style="
@@ -35,8 +35,6 @@ st.markdown(f"""
     🚀 {APP_VERSION}
 </div>
 """, unsafe_allow_html=True)
-
-
 
 # =========================================================
 # PATH (WEB SAFE)
@@ -129,7 +127,9 @@ def insert_stamp(pdf_bytes):
     if receiver in ["InoCore", "Cesi"]:
         target_width = int(target_width * 1.1)
 
-    img = Image.open(stamp_path)
+    with Image.open(stamp_path) as img:
+        img = img.copy()
+
     ratio = target_width / img.width
     target_height = int(img.height * ratio)
 
@@ -221,24 +221,21 @@ with col_upload:
         st.session_state.stamp_offset_y = 0
 
     if st.session_state.original_filename:
-        st.text_input("Original filename", st.session_state.original_filename, disabled=True)
+        st.text_input("Original filename", st.session_state.original_filename)
 
 pdf_bytes = st.session_state.get("pdf_bytes")
-
-
 
 # =========================================================
 # AUTO LOAD TEMPLATE (LOCAL ONLY)
 # =========================================================
 TEMPLATE_PATH = "/Applications/Pdf-RenamerWeb/template.pdf"
 
-if not pdf_bytes:
+if not pdf_bytes or len(pdf_bytes) == 0:
     if os.path.exists(TEMPLATE_PATH):
         with open(TEMPLATE_PATH, "rb") as f:
             pdf_bytes = f.read()
             st.session_state.pdf_bytes = pdf_bytes
             st.session_state.original_filename = "template.pdf"
-
 
 # =========================================================
 # PROCESS PDF
@@ -250,8 +247,8 @@ if pdf_bytes:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             for p in pdf.pages:
                 text += p.extract_text() or ""
-    except:
-        st.error("PDF read error")
+    except Exception as e:
+        st.error(f"PDF read error: {e}")
 
     if not text.strip():
         st.warning("No text detected (scanned PDF?)")
@@ -363,106 +360,40 @@ with col_download:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=final_name)
 
 # =========================================================
-# PREVIEW (V16.3.1 - STABLE PDF.js VIEWER)
+# PREVIEW (V16.3.1 STABLE)
 # =========================================================
 import streamlit.components.v1 as components
 
 with col1:
     if active_pdf:
-        import base64
         b64 = base64.b64encode(active_pdf).decode()
 
         pdf_js_html = f"""
         <html>
         <head>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-            <style>
-                body {{
-                    margin: 0;
-                    background: #0e1117;
-                    font-family: Arial;
-                    color: white;
-                }}
-
-                #controls {{
-                    display: flex;
-                    gap: 10px;
-                    padding: 10px;
-                    background: #111827;
-                    align-items: center;
-                }}
-
-                button {{
-                    padding: 6px 12px;
-                    border: none;
-                    border-radius: 6px;
-                    background: #1f2937;
-                    color: white;
-                    cursor: pointer;
-                }}
-
-                button:hover {{
-                    background: #374151;
-                }}
-
-                #viewer {{
-                    height: 720px;
-                    overflow: auto;
-                    display: flex;
-                    justify-content: center;
-                }}
-
-                .page-container {{
-                    position: relative;
-                }}
-
-                canvas {{
-                    display: block;
-                }}
-
-                .textLayer {{
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    right: 0;
-                    bottom: 0;
-                    overflow: hidden;
-                    transform-origin: 0 0;
-                    line-height: 1;
-                }}
-
-                .textLayer span {{
-                    position: absolute;
-                    white-space: pre;
-                    transform-origin: 0 0;
-                }}
-            </style>
         </head>
 
-        <body>
+        <body style="margin:0;background:#0e1117;color:white;font-family:Arial;">
 
-        <div id="controls">
+        <div style="display:flex;gap:10px;padding:10px;background:#111827;">
             <button onclick="prevPage()">⬅</button>
             <span id="page-info">Page 1</span>
             <button onclick="nextPage()">➡</button>
-
             <button onclick="zoomOut()">-</button>
             <button onclick="zoomIn()">+</button>
-
             <input type="range" min="0.5" max="3" step="0.1" value="1.5"
                    onchange="setZoom(this.value)">
         </div>
 
-        <div id="viewer">
-            <div class="page-container" id="page-container">
+        <div style="height:720px;overflow:auto;display:flex;justify-content:center;">
+            <div id="page-container" style="position:relative;">
                 <canvas id="pdf-canvas"></canvas>
-                <div id="text-layer" class="textLayer"></div>
+                <div id="text-layer" style="position:absolute;top:0;left:0;"></div>
             </div>
         </div>
 
         <script>
-            // 🔥 KLJUČNI FIX
             pdfjsLib.GlobalWorkerOptions.workerSrc =
               "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -490,33 +421,30 @@ with col1:
                         dontFlip: true
                     }});
 
-                    // Canvas
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
 
-                    // Container sync
                     container.style.width = viewport.width + "px";
                     container.style.height = viewport.height + "px";
 
-                    // Clear text layer
                     textLayerDiv.innerHTML = "";
                     textLayerDiv.style.width = viewport.width + "px";
                     textLayerDiv.style.height = viewport.height + "px";
 
-                    // Render PDF
                     page.render({{
                         canvasContext: ctx,
                         viewport: viewport
-                    }});
+                    }}).promise.then(() => {{
 
-                    // Render TEXT LAYER (perfect alignment)
-                    page.getTextContent().then(textContent => {{
-                        pdfjsLib.renderTextLayer({{
-                            textContent: textContent,
-                            container: textLayerDiv,
-                            viewport: viewport,
-                            textDivs: []
+                        page.getTextContent().then(textContent => {{
+                            pdfjsLib.renderTextLayer({{
+                                textContent: textContent,
+                                container: textLayerDiv,
+                                viewport: viewport,
+                                textDivs: []
+                            }});
                         }});
+
                     }});
 
                     document.getElementById("page-info").innerText =
@@ -559,7 +487,7 @@ with col1:
         components.html(pdf_js_html, height=820)
 
 # =========================================================
-# DEBUG PANEL (FOR FUTURE LEARNING)
+# DEBUG PANEL
 # =========================================================
 with st.expander("🔧 Debug (for learning phase)"):
     st.write("Company:", st.session_state.company)
@@ -567,5 +495,5 @@ with st.expander("🔧 Debug (for learning phase)"):
     st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
-# 🟢 VERSION END: V16.3 FINAL
+# 🟢 VERSION END: V16.3.1 FINAL
 # =========================================================
