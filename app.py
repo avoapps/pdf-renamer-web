@@ -324,9 +324,8 @@ with col_download:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=final_name)
 
 # =========================================================
-# PREVIEW
+# PREVIEW (V16.2.0 - PIXEL PERFECT PDF.js)
 # =========================================================
-
 import streamlit.components.v1 as components
 import base64
 
@@ -344,8 +343,8 @@ with col1:
                 body {{
                     margin: 0;
                     background: #0e1117;
-                    color: white;
                     font-family: Arial;
+                    color: white;
                 }}
 
                 #controls {{
@@ -370,25 +369,35 @@ with col1:
                 }}
 
                 #viewer {{
+                    height: 720px;
+                    overflow: auto;
                     display: flex;
                     justify-content: center;
-                    overflow: auto;
-                    height: 720px;
-                }}
-
-                canvas {{
-                    margin-top: 10px;
-                }}
-
-                .textLayer {{
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    pointer-events: auto;
                 }}
 
                 .page-container {{
                     position: relative;
+                }}
+
+                canvas {{
+                    display: block;
+                }}
+
+                .textLayer {{
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    right: 0;
+                    bottom: 0;
+                    overflow: hidden;
+                    transform-origin: 0 0;
+                    line-height: 1;
+                }}
+
+                .textLayer span {{
+                    position: absolute;
+                    white-space: pre;
+                    transform-origin: 0 0;
                 }}
             </style>
         </head>
@@ -403,11 +412,12 @@ with col1:
             <button onclick="zoomOut()">-</button>
             <button onclick="zoomIn()">+</button>
 
-            <input type="range" min="0.5" max="3" step="0.1" value="1.5" onchange="setZoom(this.value)">
+            <input type="range" min="0.5" max="3" step="0.1" value="1.5" 
+                   onchange="setZoom(this.value)">
         </div>
 
         <div id="viewer">
-            <div class="page-container">
+            <div class="page-container" id="page-container">
                 <canvas id="pdf-canvas"></canvas>
                 <div id="text-layer" class="textLayer"></div>
             </div>
@@ -415,6 +425,7 @@ with col1:
 
         <script>
             const pdfData = atob("{b64}");
+
             let pdfDoc = null;
             let pageNum = 1;
             let scale = 1.5;
@@ -422,6 +433,7 @@ with col1:
             const canvas = document.getElementById("pdf-canvas");
             const ctx = canvas.getContext("2d");
             const textLayerDiv = document.getElementById("text-layer");
+            const container = document.getElementById("page-container");
 
             pdfjsLib.getDocument({{data: pdfData}}).promise.then(pdf => {{
                 pdfDoc = pdf;
@@ -430,14 +442,24 @@ with col1:
 
             function renderPage(num) {{
                 pdfDoc.getPage(num).then(page => {{
-                    const viewport = page.getViewport({{scale: scale}});
 
-                    canvas.height = viewport.height;
+                    const viewport = page.getViewport({{
+                        scale: scale,
+                        dontFlip: true
+                    }});
+
+                    // Canvas setup
                     canvas.width = viewport.width;
+                    canvas.height = viewport.height;
 
+                    container.style.width = viewport.width + "px";
+                    container.style.height = viewport.height + "px";
+
+                    // Clear text layer
                     textLayerDiv.innerHTML = "";
-                    textLayerDiv.style.height = viewport.height + "px";
+
                     textLayerDiv.style.width = viewport.width + "px";
+                    textLayerDiv.style.height = viewport.height + "px";
 
                     const renderContext = {{
                         canvasContext: ctx,
@@ -446,13 +468,16 @@ with col1:
 
                     page.render(renderContext);
 
+                    // PERFECT TEXT LAYER ALIGNMENT
                     page.getTextContent().then(textContent => {{
-                        pdfjsLib.renderTextLayer({{
+
+                        const textLayer = pdfjsLib.renderTextLayer({{
                             textContent: textContent,
                             container: textLayerDiv,
                             viewport: viewport,
                             textDivs: []
                         }});
+
                     }});
 
                     document.getElementById("page-info").innerText =
