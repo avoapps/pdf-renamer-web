@@ -434,6 +434,7 @@ with col1:
                     position: absolute;
                     white-space: pre;
                     transform-origin: 0 0;
+                    color: transparent;
                 }}
             </style>
         </head>
