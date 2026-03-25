@@ -226,9 +226,9 @@ with col_upload:
 pdf_bytes = st.session_state.get("pdf_bytes")
 
 # =========================================================
-# AUTO LOAD TEMPLATE (LOCAL ONLY)
+# AUTO LOAD TEMPLATE (LOCAL + WEB SAFE)
 # =========================================================
-TEMPLATE_PATH = "/Applications/Pdf-RenamerWeb/template.pdf"
+TEMPLATE_PATH = os.path.join(BASE_DIR, "template.pdf")
 
 if not pdf_bytes or len(pdf_bytes) == 0:
     if os.path.exists(TEMPLATE_PATH):
@@ -236,7 +236,7 @@ if not pdf_bytes or len(pdf_bytes) == 0:
             pdf_bytes = f.read()
             st.session_state.pdf_bytes = pdf_bytes
             st.session_state.original_filename = "template.pdf"
-
+            
 # =========================================================
 # PROCESS PDF
 # =========================================================
