@@ -1,5 +1,5 @@
 # =========================================================
-# 🚀 VERSION: V16.3.2 FINAL (STABLE)
+# 🚀 VERSION: V16.3.3 FINAL (STABLE)
 # =========================================================
 
 import streamlit as st
@@ -17,7 +17,7 @@ st.set_page_config(layout="wide")
 # =========================================================
 # 🟢 APP VERSION VIEWER
 # =========================================================
-APP_VERSION = "AvoAPP: V16.3.2"
+APP_VERSION = "AvoAPP: V16.3.3"
 
 st.markdown(f"""
 <div style="
@@ -562,5 +562,5 @@ with st.expander("🔧 Debug (for learning phase)"):
     st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
-# 🟢 VERSION END: V16.3.2 FINAL
+# 🟢 VERSION END: V16.3.3 FINAL
 # =========================================================
