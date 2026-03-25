@@ -1,5 +1,5 @@
 # =========================================================
-# 🚀 VERSION: V16.0 FINAL (WEB READY BASE)
+# 🚀 VERSION: V16.2 FINAL (WEB READY BASE)
 # =========================================================
 
 import streamlit as st
@@ -326,10 +326,174 @@ with col_download:
 # =========================================================
 # PREVIEW
 # =========================================================
+
+import streamlit.components.v1 as components
+import base64
+
 with col1:
     if active_pdf:
         b64 = base64.b64encode(active_pdf).decode()
-        st.markdown(f"<div class='preview-box'><iframe src='data:application/pdf;base64,{b64}' width='100%' height='800px'></iframe></div>", unsafe_allow_html=True)
+
+        pdf_js_html = f"""
+        <html>
+        <head>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+
+            <style>
+                body {{
+                    margin: 0;
+                    background: #0e1117;
+                    color: white;
+                    font-family: Arial;
+                }}
+
+                #controls {{
+                    display: flex;
+                    gap: 10px;
+                    padding: 10px;
+                    background: #111827;
+                    align-items: center;
+                }}
+
+                button {{
+                    padding: 6px 12px;
+                    border: none;
+                    border-radius: 6px;
+                    background: #1f2937;
+                    color: white;
+                    cursor: pointer;
+                }}
+
+                button:hover {{
+                    background: #374151;
+                }}
+
+                #viewer {{
+                    display: flex;
+                    justify-content: center;
+                    overflow: auto;
+                    height: 720px;
+                }}
+
+                canvas {{
+                    margin-top: 10px;
+                }}
+
+                .textLayer {{
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    pointer-events: auto;
+                }}
+
+                .page-container {{
+                    position: relative;
+                }}
+            </style>
+        </head>
+
+        <body>
+
+        <div id="controls">
+            <button onclick="prevPage()">⬅</button>
+            <span id="page-info">Page 1</span>
+            <button onclick="nextPage()">➡</button>
+
+            <button onclick="zoomOut()">-</button>
+            <button onclick="zoomIn()">+</button>
+
+            <input type="range" min="0.5" max="3" step="0.1" value="1.5" onchange="setZoom(this.value)">
+        </div>
+
+        <div id="viewer">
+            <div class="page-container">
+                <canvas id="pdf-canvas"></canvas>
+                <div id="text-layer" class="textLayer"></div>
+            </div>
+        </div>
+
+        <script>
+            const pdfData = atob("{b64}");
+            let pdfDoc = null;
+            let pageNum = 1;
+            let scale = 1.5;
+
+            const canvas = document.getElementById("pdf-canvas");
+            const ctx = canvas.getContext("2d");
+            const textLayerDiv = document.getElementById("text-layer");
+
+            pdfjsLib.getDocument({{data: pdfData}}).promise.then(pdf => {{
+                pdfDoc = pdf;
+                renderPage(pageNum);
+            }});
+
+            function renderPage(num) {{
+                pdfDoc.getPage(num).then(page => {{
+                    const viewport = page.getViewport({{scale: scale}});
+
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    textLayerDiv.innerHTML = "";
+                    textLayerDiv.style.height = viewport.height + "px";
+                    textLayerDiv.style.width = viewport.width + "px";
+
+                    const renderContext = {{
+                        canvasContext: ctx,
+                        viewport: viewport
+                    }};
+
+                    page.render(renderContext);
+
+                    page.getTextContent().then(textContent => {{
+                        pdfjsLib.renderTextLayer({{
+                            textContent: textContent,
+                            container: textLayerDiv,
+                            viewport: viewport,
+                            textDivs: []
+                        }});
+                    }});
+
+                    document.getElementById("page-info").innerText =
+                        "Page " + num + " / " + pdfDoc.numPages;
+                }});
+            }}
+
+            function prevPage() {{
+                if (pageNum <= 1) return;
+                pageNum--;
+                renderPage(pageNum);
+            }}
+
+            function nextPage() {{
+                if (pageNum >= pdfDoc.numPages) return;
+                pageNum++;
+                renderPage(pageNum);
+            }}
+
+            function zoomIn() {{
+                scale += 0.2;
+                renderPage(pageNum);
+            }}
+
+            function zoomOut() {{
+                scale = Math.max(0.5, scale - 0.2);
+                renderPage(pageNum);
+            }}
+
+            function setZoom(val) {{
+                scale = parseFloat(val);
+                renderPage(pageNum);
+            }}
+        </script>
+
+        </body>
+        </html>
+        """
+
+        components.html(pdf_js_html, height=820)
+
 
 # =========================================================
 # DEBUG PANEL (FOR FUTURE LEARNING)
@@ -340,5 +504,5 @@ with st.expander("🔧 Debug (for learning phase)"):
     st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
-# 🟢 VERSION END: V16.1 FINAL
+# 🟢 VERSION END: V16.2 FINAL
 # =========================================================
