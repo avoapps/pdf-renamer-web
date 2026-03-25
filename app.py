@@ -1,5 +1,5 @@
 # =========================================================
-# 🚀 VERSION: V16.2 FINAL (WEB READY BASE)
+# 🚀 VERSION: V16.3 FINAL (WEB READY BASE)
 # =========================================================
 
 import streamlit as st
@@ -13,6 +13,30 @@ from PIL import Image
 from datetime import datetime
 
 st.set_page_config(layout="wide")
+
+# =========================================================
+# 🟢 APP VERSION VIEWER
+# =========================================================
+APP_VERSION = "V16.3.0"
+
+st.markdown(f"""
+<div style="
+    position: fixed;
+    top: 10px;
+    right: 20px;
+    background: #111827;
+    color: #9ca3af;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 9999;
+    border: 1px solid #2a2d36;
+">
+    🚀 {APP_VERSION}
+</div>
+""", unsafe_allow_html=True)
+
+
 
 # =========================================================
 # PATH (WEB SAFE)
@@ -201,6 +225,21 @@ with col_upload:
 
 pdf_bytes = st.session_state.get("pdf_bytes")
 
+
+
+# =========================================================
+# AUTO LOAD TEMPLATE (LOCAL ONLY)
+# =========================================================
+TEMPLATE_PATH = "/Applications/Pdf-RenamerWeb/template.pdf"
+
+if not pdf_bytes:
+    if os.path.exists(TEMPLATE_PATH):
+        with open(TEMPLATE_PATH, "rb") as f:
+            pdf_bytes = f.read()
+            st.session_state.pdf_bytes = pdf_bytes
+            st.session_state.original_filename = "template.pdf"
+
+
 # =========================================================
 # PROCESS PDF
 # =========================================================
@@ -324,20 +363,19 @@ with col_download:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=final_name)
 
 # =========================================================
-# PREVIEW (V16.2.0 - PIXEL PERFECT PDF.js)
+# PREVIEW (V16.3.1 - STABLE PDF.js VIEWER)
 # =========================================================
 import streamlit.components.v1 as components
-import base64
 
 with col1:
     if active_pdf:
+        import base64
         b64 = base64.b64encode(active_pdf).decode()
 
         pdf_js_html = f"""
         <html>
         <head>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
 
             <style>
                 body {{
@@ -412,7 +450,7 @@ with col1:
             <button onclick="zoomOut()">-</button>
             <button onclick="zoomIn()">+</button>
 
-            <input type="range" min="0.5" max="3" step="0.1" value="1.5" 
+            <input type="range" min="0.5" max="3" step="0.1" value="1.5"
                    onchange="setZoom(this.value)">
         </div>
 
@@ -424,6 +462,10 @@ with col1:
         </div>
 
         <script>
+            // 🔥 KLJUČNI FIX
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
             const pdfData = atob("{b64}");
 
             let pdfDoc = null;
@@ -448,36 +490,33 @@ with col1:
                         dontFlip: true
                     }});
 
-                    // Canvas setup
+                    // Canvas
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
 
+                    // Container sync
                     container.style.width = viewport.width + "px";
                     container.style.height = viewport.height + "px";
 
                     // Clear text layer
                     textLayerDiv.innerHTML = "";
-
                     textLayerDiv.style.width = viewport.width + "px";
                     textLayerDiv.style.height = viewport.height + "px";
 
-                    const renderContext = {{
+                    // Render PDF
+                    page.render({{
                         canvasContext: ctx,
                         viewport: viewport
-                    }};
+                    }});
 
-                    page.render(renderContext);
-
-                    // PERFECT TEXT LAYER ALIGNMENT
+                    // Render TEXT LAYER (perfect alignment)
                     page.getTextContent().then(textContent => {{
-
-                        const textLayer = pdfjsLib.renderTextLayer({{
+                        pdfjsLib.renderTextLayer({{
                             textContent: textContent,
                             container: textLayerDiv,
                             viewport: viewport,
                             textDivs: []
                         }});
-
                     }});
 
                     document.getElementById("page-info").innerText =
@@ -519,7 +558,6 @@ with col1:
 
         components.html(pdf_js_html, height=820)
 
-
 # =========================================================
 # DEBUG PANEL (FOR FUTURE LEARNING)
 # =========================================================
@@ -529,5 +567,5 @@ with st.expander("🔧 Debug (for learning phase)"):
     st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
-# 🟢 VERSION END: V16.2 FINAL
+# 🟢 VERSION END: V16.3 FINAL
 # =========================================================
