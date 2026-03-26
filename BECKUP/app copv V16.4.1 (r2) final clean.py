@@ -2,7 +2,6 @@
 # 🚀 VERSION: V17.0.1 Learning
 # =========================================================
 
-
 import streamlit as st
 import re
 import os
@@ -246,21 +245,17 @@ with col2:
         None if selected_receiver == "-- Select --" else selected_receiver
     )
 # =========================================================
-# MOVE (COMPACT LEFT)
+# MOVE
 # =========================================================
 if pdf_bytes:
-    col_move, _ = st.columns([1, 3])  # 👈 LEVO OZKO
-
-    with col_move:
-        c1, c2, c3, c4, c5 = st.columns(5)
-
-        if c1.button("⬅"): st.session_state.stamp_offset_x -= 20
-        if c2.button("➡"): st.session_state.stamp_offset_x += 20
-        if c3.button("⬆"): st.session_state.stamp_offset_y -= 20
-        if c4.button("⬇"): st.session_state.stamp_offset_y += 20
-        if c5.button("Reset"):
-            st.session_state.stamp_offset_x = 0
-            st.session_state.stamp_offset_y = 0
+    cols = st.columns(5)
+    if cols[0].button("⬅"): st.session_state.stamp_offset_x -= 20
+    if cols[1].button("➡"): st.session_state.stamp_offset_x += 20
+    if cols[2].button("⬆"): st.session_state.stamp_offset_y -= 20
+    if cols[3].button("⬇"): st.session_state.stamp_offset_y += 20
+    if cols[4].button("Reset"):
+        st.session_state.stamp_offset_x = 0
+        st.session_state.stamp_offset_y = 0
 
 # =========================================================
 # PDF OUTPUT
@@ -286,34 +281,13 @@ if pdf_bytes:
 with col_download:
     if active_pdf:
         st.download_button("⬇️ Download PDF", active_pdf, file_name=generated_filename)
+
 # =========================================================
 # PREVIEW (V16.3.2 - FIXED PDF.js VIEWER)
 # =========================================================
 import streamlit.components.v1 as components
 
 with col1:
-
-    # -----------------------------------------------------
-    # STATUS
-    # -----------------------------------------------------
-    if not st.session_state.date_inv_issued:
-        st.markdown("""
-        <div style="
-            display:inline-block;
-            background:#1e293b;
-            color:#facc15;
-            padding:6px 12px;
-            border-radius:8px;
-            font-size:13px;
-            margin-bottom:10px;
-        ">
-            ⚠ Missing invoice date
-        </div>
-        """, unsafe_allow_html=True)
-
-    # -----------------------------------------------------
-    # PREVIEW 
-    # -----------------------------------------------------
     if active_pdf:
         import base64
         b64 = base64.b64encode(active_pdf).decode()
