@@ -1,10 +1,15 @@
 # =========================================================
-# 🚀 VERSION: V16.4.1 CLEAN
+# 🚀 VERSION: V16.4.0 FINAL (STABLE)
 # =========================================================
 
 import streamlit as st
+import pdfplumber
 import re
+import io
+import base64
 import os
+import fitz
+from PIL import Image
 from datetime import datetime
 
 from modules.detect import detect_receiver
@@ -12,12 +17,14 @@ from modules.filename import generate_filename
 from modules.stamp import insert_stamp
 from modules.pdf import extract_text_from_pdf, detect_company_from_text
 
+
+
 st.set_page_config(layout="wide")
 
 # =========================================================
 # 🟢 APP VERSION VIEWER
 # =========================================================
-APP_VERSION = "AvoAPP: V16.4.1"
+APP_VERSION = "AvoAPP: V16.4.0"
 
 st.markdown(f"""
 <div style="
@@ -76,8 +83,12 @@ header {visibility:hidden;}
 # =========================================================
 # HELPERS
 # =========================================================
+def clean(t):
+    return re.sub(r"[^\w\- ]", "", t).strip()
+
 def format_date(d):
     return d.strftime("%d.%m.%Y") if d else ""
+
 
 # =========================================================
 # SESSION STATE
@@ -95,6 +106,7 @@ defaults = {
     "pdf_bytes": None,
     "stamp_offset_x": 0,
     "stamp_offset_y": 0,
+    "debug": False
 }
 
 for k, v in defaults.items():
@@ -124,7 +136,7 @@ pdf_bytes = st.session_state.get("pdf_bytes")
 # =========================================================
 TEMPLATE_PATH = os.path.join(BASE_DIR, "template.pdf")
 
-if not pdf_bytes:
+if not pdf_bytes or len(pdf_bytes) == 0:
     if os.path.exists(TEMPLATE_PATH):
         with open(TEMPLATE_PATH, "rb") as f:
             pdf_bytes = f.read()
@@ -132,7 +144,7 @@ if not pdf_bytes:
             st.session_state.original_filename = "template.pdf"
 
 # =========================================================
-# PROCESS PDF
+# PROCESS PDF (MODULAR)
 # =========================================================
 text = ""
 
@@ -145,14 +157,17 @@ if pdf_bytes:
     if not text.strip():
         st.warning("No text detected (scanned PDF?)")
 
+    # ✔ COMPANY DETECTION
     detected_company = detect_company_from_text(text)
     if detected_company:
         st.session_state.company = detected_company
 
+    # ✔ RECEIVER DETECTION
     detected = detect_receiver(text)
     if detected and not st.session_state.receiver_company:
         st.session_state.receiver_company = detected
 
+    # ✔ PREFIX (legacy)
     comp = st.session_state.company.lower()
     for key, value in COMPANY_DOC_MAP.items():
         if key in comp:
@@ -175,14 +190,21 @@ st.markdown(f"""
 col1, col2 = st.columns([1.6,1])
 
 with col2:
+
     if "doc_type_label" not in st.session_state:
         st.session_state.doc_type_label = list(DOCUMENT_TYPES.keys())[0]
 
-    selected_label = st.selectbox("Document Type", list(DOCUMENT_TYPES.keys()))
+    selected_label = st.selectbox(
+        "Document Type",
+        list(DOCUMENT_TYPES.keys()),
+        index=list(DOCUMENT_TYPES.keys()).index(st.session_state.doc_type_label)
+    )
+
+    st.session_state.doc_type_label = selected_label
     st.session_state.prefix = DOCUMENT_TYPES[selected_label]
 
-    st.session_state.date_inv_issued = st.date_input("Invoice Issue Date")
-    st.session_state.date_received_inv = st.date_input("Invoice Received Date")
+    st.session_state.date_inv_issued = st.date_input("Invoice Issue Date", st.session_state.date_inv_issued)
+    st.session_state.date_received_inv = st.date_input("Invoice Received Date", st.session_state.date_received_inv)
 
     st.session_state.company = st.text_input("Company Name", st.session_state.company)
     st.session_state.invoice = st.text_input("Invoice number", st.session_state.invoice)
@@ -191,14 +213,25 @@ with col2:
     st.session_state.registration_no = re.sub(r"\D","",reg_input).zfill(6)
 
     receiver_options = ["-- Select --","Janniki","InoCore","Cesi"]
-    selected_receiver = st.radio("Receiver", receiver_options)
+
+    current = st.session_state.receiver_company
+
+    selected_receiver = st.radio(
+        "Receiver",
+        receiver_options,
+        index=receiver_options.index(current) if current in receiver_options else 0
+    )
+
     st.session_state.receiver_company = None if selected_receiver == "-- Select --" else selected_receiver
 
 # =========================================================
-# MOVE
+# MOVE BUTTONS
 # =========================================================
+st.markdown("---")
+
 if pdf_bytes:
-    cols = st.columns(5)
+    cols = st.columns([1,1,1,1,1], gap="small")
+
     if cols[0].button("⬅"): st.session_state.stamp_offset_x -= 20
     if cols[1].button("➡"): st.session_state.stamp_offset_x += 20
     if cols[2].button("⬆"): st.session_state.stamp_offset_y -= 20
@@ -231,7 +264,12 @@ if pdf_bytes:
 # =========================================================
 with col_download:
     if active_pdf:
-        st.download_button("⬇️ Download PDF", active_pdf, file_name=generated_filename)
+        st.download_button(
+            "⬇️ Download PDF",
+            active_pdf,
+            file_name=generated_filename
+        )
+
 
 # =========================================================
 # PREVIEW (V16.3.2 - FIXED PDF.js VIEWER)
@@ -433,5 +471,5 @@ with st.expander("🔧 Debug"):
     st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
-# 🟢 VERSION END: V16.4.1
+# 🟢 VERSION END: V16.4.0 FINAL
 # =========================================================
