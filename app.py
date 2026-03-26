@@ -1,8 +1,6 @@
 # =========================================================
 # 🚀 VERSION: V17.0.1 Learning
 # =========================================================
-
-
 import streamlit as st
 import re
 import os
@@ -15,6 +13,7 @@ from modules.pdf import extract_text_from_pdf, detect_company_from_text
 
 st.set_page_config(layout="wide")
 
+
 # =========================================================
 # 🟢 APP VERSION VIEWER
 # =========================================================
@@ -24,7 +23,7 @@ st.markdown(f"""
 <div style="
     position: fixed;
     top: 10px;
-    right: 20px;
+    left: 20px;
     background: #111827;
     color: #9ca3af;
     padding: 6px 12px;
@@ -63,6 +62,84 @@ COMPANY_DOC_MAP = {
     "grenke": "120",
 }
 
+
+# =========================================================
+# HEAD 0
+# =========================================================
+
+st.markdown("""
+<div style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:90px;
+background:#111827;
+z-index:9990;
+">
+</div>
+""", unsafe_allow_html=True)
+
+
+
+
+# =========================================================
+# HEAD 1
+# =========================================================
+import base64
+
+logo_path = os.path.join(BASE_DIR, "logo_avoapps.png")
+
+if os.path.exists(logo_path):
+    with open(logo_path, "rb") as f:
+        logo_base64 = base64.b64encode(f.read()).decode()
+
+    st.markdown(f"""
+    <div style="
+        position: fixed;
+        top: 0px;
+        right: 0px;
+        width: 150px;
+        z-index: 9996;       
+    ">
+        <img src="data:image/png;base64,{logo_base64}" 
+             style="height:200px; display:block;">
+    </div>
+    """, unsafe_allow_html=True)
+
+else:
+    st.write("Logo not found:", logo_path)
+
+
+
+# =========================================================
+# HEAD 2
+# =========================================================
+HEAD_2 = "Document Manager APP"
+
+st.markdown(f"""
+<div style="
+    position: fixed;
+    top: 0px;
+    left: 600px;
+    width:100%
+    color: #9ca3af;
+    font-size: 48px;
+    border: 0px solid #2a2d36;
+    background: transparent;  /* 🔑 KLJUČNO: NI transparent */
+    z-index:9998;        /* 🔑 NAD vsem */
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 30px;
+    border-bottom:0px solid #2a2d36;
+">
+    🗄️📄 {HEAD_2}
+</div>
+""", unsafe_allow_html=True)
+
+
+
 # =========================================================
 # STYLE
 # =========================================================
@@ -79,6 +156,8 @@ header {visibility:hidden;}
 # =========================================================
 def format_date(d):
     return d.strftime("%d.%m.%Y") if d else ""
+
+
 
 # =========================================================
 # SESSION STATE
@@ -104,7 +183,7 @@ for k, v in defaults.items():
 # =========================================================
 # UPLOAD
 # =========================================================
-col_upload, col_download = st.columns([2,1])
+col_upload, col_download = st.columns([0.2,0.5])
 
 with col_upload:
     uploaded = st.file_uploader("Upload PDF", type="pdf")
@@ -173,94 +252,141 @@ st.markdown(f"""
 # =========================================================
 # UI
 # =========================================================
-col1, col2 = st.columns([1.6,1])
 
-with col2:
-    # -----------------------------------------------------
-    # DOCUMENT TYPE
-    # -----------------------------------------------------
-    if "doc_type_label" not in st.session_state:
-        st.session_state.doc_type_label = list(DOCUMENT_TYPES.keys())[0]
 
-    selected_label = st.selectbox(
-        "Document Type",
-        list(DOCUMENT_TYPES.keys()),
-        index=list(DOCUMENT_TYPES.keys()).index(st.session_state.doc_type_label)
-    )
 
-    st.session_state.doc_type_label = selected_label
-    st.session_state.prefix = DOCUMENT_TYPES[selected_label]
+# MAIN LAYOUT
+left, right = st.columns([1, 2])
 
-    # -----------------------------------------------------
-    # DATES (FIXED FORMAT + NO RESET)
-    # -----------------------------------------------------
-    st.session_state.date_inv_issued = st.date_input(
-        "Invoice Issue Date",
-        value=st.session_state.date_inv_issued,
-        format="DD.MM.YYYY"
-    )
 
-    st.session_state.date_received_inv = st.date_input(
-        "Invoice Received Date",
-        value=st.session_state.date_received_inv,
-        format="DD.MM.YYYY"
-    )
-
-    # -----------------------------------------------------
-    # TEXT FIELDS
-    # -----------------------------------------------------
-    st.session_state.company = st.text_input(
-        "Company Name",
-        st.session_state.company
-    )
-
-    st.session_state.invoice = st.text_input(
-        "Invoice number",
-        st.session_state.invoice
-    )
-
-    # -----------------------------------------------------
-    # REGISTRATION NUMBER (ONLY DIGITS)
-    # -----------------------------------------------------
-    reg_input = st.text_input(
-        "Registration No.",
-        st.session_state.registration_no
-    )
-
-    st.session_state.registration_no = re.sub(r"\D", "", reg_input).zfill(6)
-
-    # -----------------------------------------------------
-    # RECEIVER
-    # -----------------------------------------------------
-    receiver_options = ["-- Select --","Janniki","InoCore","Cesi"]
-
-    current = st.session_state.receiver_company
-
-    selected_receiver = st.radio(
-        "Receiver",
-        receiver_options,
-        index=receiver_options.index(current) if current in receiver_options else 0
-    )
-
-    st.session_state.receiver_company = (
-        None if selected_receiver == "-- Select --" else selected_receiver
-    )
 # =========================================================
-# MOVE (COMPACT LEFT)
+# LEFT PANEL (ALL CONTROLS)
 # =========================================================
-if pdf_bytes:
-    col_move, _ = st.columns([1, 3])  # 👈 LEVO OZKO
 
-    with col_move:
-        c1, c2, c3, c4, c5 = st.columns(5)
+with left:
+    colA, colB = st.columns(2)
 
-        if c1.button("⬅"): st.session_state.stamp_offset_x -= 20
-        if c2.button("➡"): st.session_state.stamp_offset_x += 20
-        if c3.button("⬆"): st.session_state.stamp_offset_y -= 20
-        if c4.button("⬇"): st.session_state.stamp_offset_y += 20
-        if c5.button("Reset"):
-            st.session_state.stamp_offset_x = 0
-            st.session_state.stamp_offset_y = 0
+    with colA:
+        # -----------------------------------------------------
+        # DOCUMENT TYPE
+        # -----------------------------------------------------
+        if "doc_type_label" not in st.session_state:
+            st.session_state.doc_type_label = list(DOCUMENT_TYPES.keys())[0]
+
+        selected_label = st.selectbox(
+            "Document Type",
+            list(DOCUMENT_TYPES.keys()),
+            index=list(DOCUMENT_TYPES.keys()).index(st.session_state.doc_type_label)
+        )
+
+        st.session_state.doc_type_label = selected_label
+        st.session_state.prefix = DOCUMENT_TYPES[selected_label]
+
+        # -----------------------------------------------------
+        # DATES
+        # -----------------------------------------------------
+        st.session_state.date_inv_issued = st.date_input(
+            "Invoice Issue Date",
+            value=st.session_state.date_inv_issued,
+            format="DD.MM.YYYY"
+        )
+
+        st.session_state.date_received_inv = st.date_input(
+            "Invoice Received Date",
+            value=st.session_state.date_received_inv,
+            format="DD.MM.YYYY"
+        )
+
+    with colB: 
+        # -----------------------------------------------------
+        # TEXT FIELDS
+        # -----------------------------------------------------
+        st.session_state.company = st.text_input(
+            "Company Name",
+            st.session_state.company
+        )
+
+        st.session_state.invoice = st.text_input(
+            "Invoice number",
+            st.session_state.invoice
+        )
+
+        # -----------------------------------------------------
+        # REGISTRATION NUMBER
+        # -----------------------------------------------------
+        reg_input = st.text_input(
+            "Registration No.",
+            st.session_state.registration_no
+        )
+
+        st.session_state.registration_no = re.sub(r"\D", "", reg_input).zfill(6)
+
+
+    # =========================================================
+    # LEFT BOTTOM PANEL (ALL CONTROLS)
+    # =========================================================
+    bottom_left, bottom_right = st.columns([1, 2])
+
+    with bottom_left:
+
+            # -----------------------------------------------------
+            # RECEIVER
+            # -----------------------------------------------------
+            receiver_options = ["-- Select --","Janniki","InoCore","Cesi"]
+
+            if "receiver_company" not in st.session_state:
+                st.session_state.receiver_company = "-- Select --"
+
+            current = st.session_state.receiver_company
+
+            selected_receiver = st.radio(
+                "Receiver",
+                receiver_options,
+                index=receiver_options.index(current) if current in receiver_options else 0,
+                key="receiver_company"
+            )
+
+            receiver = None if selected_receiver == "-- Select --" else selected_receiver
+
+    with bottom_right:
+            # -----------------------------------------------------
+            # MOVE (BETTER UI)
+            # -----------------------------------------------------
+            if pdf_bytes:
+
+                st.markdown("### 🎯 Move Stamp")
+
+                col_empty1, col_up, col_empty2 = st.columns([1,1,1])
+                with col_up:
+                    if st.button("⬆", use_container_width=True):
+                        st.session_state.stamp_offset_y -= 20
+
+                col_left, col_reset, col_right = st.columns([1,1,1])
+
+                with col_left:
+                    if st.button("⬅", use_container_width=True):
+                        st.session_state.stamp_offset_x -= 20
+
+                with col_reset:
+                    if st.button("Reset", use_container_width=True):
+                        st.session_state.stamp_offset_x = 0
+                        st.session_state.stamp_offset_y = 0
+
+                with col_right:
+                    if st.button("➡", use_container_width=True):
+                        st.session_state.stamp_offset_x += 20
+
+                col_empty3, col_down, col_empty4 = st.columns([1,1,1])
+                with col_down:
+                    if st.button("⬇", use_container_width=True):
+                        st.session_state.stamp_offset_y += 20
+
+
+# =========================================================
+# RIGHT PANEL (RESERVED FOR PREVIEW)
+# =========================================================
+with right:
+    pass  # preview block je spodaj (že si ga popravil)
 
 # =========================================================
 # PDF OUTPUT
@@ -283,15 +409,36 @@ if pdf_bytes:
 # =========================================================
 # DOWNLOAD
 # =========================================================
-with col_download:
+with left:
+
     if active_pdf:
-        st.download_button("⬇️ Download PDF", active_pdf, file_name=generated_filename)
+        st.markdown("### 💾 Export")
+
+        st.download_button(
+            "⬇️ Download PDF",
+            active_pdf,
+            file_name=generated_filename,
+            use_container_width=True
+        )
+
+    # -----------------------------------------------------
+    # DEBUG
+    # -----------------------------------------------------
+    
+    st.markdown("### 💾 Debug")
+
+    with st.expander("🔧 Debug"):
+        st.write("Company:", st.session_state.company)
+        st.write("Receiver:", st.session_state.receiver_company)
+        st.write("Prefix:", st.session_state.prefix)
+
+
 # =========================================================
 # PREVIEW (V16.3.2 - FIXED PDF.js VIEWER)
 # =========================================================
 import streamlit.components.v1 as components
 
-with col1:
+with right:
 
     # -----------------------------------------------------
     # STATUS
@@ -353,7 +500,7 @@ with col1:
                 }}
 
                 #viewer {{
-                    height: 720px;
+                    height: 1000px;
                     overflow: auto;
                     display: flex;
                     justify-content: center;
@@ -499,13 +646,6 @@ with col1:
         components.html(pdf_js_html, height=820)
 
 
-# =========================================================
-# DEBUG
-# =========================================================
-with st.expander("🔧 Debug"):
-    st.write("Company:", st.session_state.company)
-    st.write("Receiver:", st.session_state.receiver_company)
-    st.write("Prefix:", st.session_state.prefix)
 
 # =========================================================
 # 🟢 VERSION | END | : V17.0.1
