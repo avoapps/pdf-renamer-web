@@ -1,43 +1,35 @@
 # =========================================================
-# 🚀 VERSION: V17.2.0 Multipage
+# 🚀 VERSION: V17.0.1 Learning
 # =========================================================
 import streamlit as st
 import re
 import os
 from datetime import datetime
 
-st.set_page_config(
-    layout="wide",
-    initial_sidebar_state="collapsed"  # 👈 hamburger closed by default
-)
-
 from modules.detect import detect_receiver
 from modules.filename import generate_filename
 from modules.stamp import insert_stamp
 from modules.pdf import extract_text_from_pdf, detect_company_from_text
 
-# =========================================================
-# ROUTING
-# =========================================================
-page = st.query_params.get("page", "app")
+st.set_page_config(layout="wide")
 
 
 # =========================================================
 # 🟢 APP VERSION VIEWER
 # =========================================================
-APP_VERSION = "AvoAPP: V17.2.0"
+APP_VERSION = "AvoAPP: V17.0.1"
 
 st.markdown(f"""
 <div style="
     position: fixed;
     top: 10px;
-    right: 20px;
+    left: 20px;
     background: #111827;
     color: #9ca3af;
     padding: 6px 12px;
     border-radius: 8px;
     font-size: 12px;
-    z-index: 9999999;
+    z-index: 9999;
     border: 1px solid #2a2d36;
 ">
     🚀 {APP_VERSION}
@@ -65,136 +57,101 @@ DOCUMENT_TYPES = {
     "190 | foreign goods": "190",
     "other": "000"
 }
+
 COMPANY_DOC_MAP = {
     "grenke": "120",
 }
 
+
+
+
 # =========================================================
-# LOGO LOAD
+# HEAD 0
+# =========================================================
+
+st.markdown("""
+<div style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:90px;
+background:#111827;
+z-index:9990;
+">
+</div>
+""", unsafe_allow_html=True)
+
+
+
+
+# =========================================================
+# HEAD 1
 # =========================================================
 import base64
 
 logo_path = os.path.join(BASE_DIR, "logo_avoapps.png")
 
-logo_html = ""
-
 if os.path.exists(logo_path):
     with open(logo_path, "rb") as f:
         logo_base64 = base64.b64encode(f.read()).decode()
 
-    logo_html = f'<img src="data:image/png;base64,{logo_base64}" style="height:90px;">'
+    st.markdown(f"""
+    <div style="
+        position: fixed;
+        top: 0px;
+        right: 0px;
+        width: 150px;
+        z-index: 9996;       
+    ">
+        <img src="data:image/png;base64,{logo_base64}" 
+             style="height:200px; display:block;">
+    </div>
+    """, unsafe_allow_html=True)
+
+else:
+    st.write("Logo not found:", logo_path)
+
 
 
 # =========================================================
-# TOP NAV BAR (PRODUCTION)
+# HEAD 2
 # =========================================================
-
+HEAD_2 = "Document Manager APP"
 
 st.markdown(f"""
-<div class="topnav">
-    <div class="topnav-left">
-        {logo_html}
-        🗄️ Document Manager
-    </div>
+<div style="
+    position: fixed;
+    top: 0px;
+    left: 600px;
+    width:100%
+    color: #9ca3af;
+    font-size: 48px;
+    border: 0px solid #2a2d36;
+    background: transparent;  /* 🔑 KLJUČNO: NI transparent */
+    z-index:9998;        /* 🔑 NAD vsem */
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 30px;
+    border-bottom:0px solid #2a2d36;
+">
+    🗄️📄 {HEAD_2}
 </div>
 """, unsafe_allow_html=True)
 
 
-# =========================================================
-# SIDEBAR NAVIGATION
-# =========================================================
-
-
-with st.sidebar:
-
-    import base64
-    import os
-
-    logo_path = os.path.join(BASE_DIR, "logo_avoapps.png")
-
-    if os.path.exists(logo_path):
-        with open(logo_path, "rb") as f:
-            logo_base64 = base64.b64encode(f.read()).decode()
-
-    st.markdown(f"""
-    <div style="margin-bottom: 0px; padding-left: 0px;">
-        <img src="data:image/png;base64,{logo_base64}" 
-             style="height:60px;">
-    </div>
-""", unsafe_allow_html=True)
-
-
-    st.markdown("## 🧭 Navigation")
-
-    if st.button("📄 App", use_container_width=True):
-        st.query_params["page"] = "app"
-        st.rerun()
-
-    if st.button("⚙️ Settings", use_container_width=True):
-        st.query_params["page"] = "settings"
-        st.rerun()
 
 # =========================================================
 # STYLE
 # =========================================================
 st.markdown("""
 <style>
-
-    /* =========================================================
-    MAIN CONTAINER
-    ========================================================= */
-    .block-container {
-        padding-top: 90px !important;
-        padding-left: 40px;
-        padding-right: 40px;
-    }
-
-
-    /* =========================================================
-    STREAMLIT HEADER (hamburger ostane)
-    ========================================================= */
-    header {
-        visibility: visible;
-    }
-
-
-    /* =========================================================
-    TOP NAVBAR (PRAVILNO FIXED)
-    ========================================================= */
-    .topnav {
-        position: fixed;
-        top: 60px;   /* 🔥 ključno */
-        left: 0;
-        width: 100%;
-        height: 80px;
-        background: #111827;
-        display: flex;
-        align-items: center;
-        padding: 0 25px;   /* 🔥 fix */
-        z-index: 9998;
-        border-bottom: 1px solid #2a2d36;
-        font-size: 40px;
-    }
-
-
-    /* =========================================================
-    OPTIONAL (da nič ne skače)
-    ========================================================= */
-    section.main {
-        position: relative;
-    }
-
-    </style>
-    """, unsafe_allow_html=True)
-
-
-# =========================================================
-# PAGE ROUTER
-# =========================================================
-if page == "settings":
-    import pages.settings as settings
-    settings.run()
-    st.stop()   # 🔥 to ustavi app.py naprej
+header {visibility:hidden;}
+.block-container {padding-top:80px;padding-left:40px;padding-right:40px;}
+.preview-box {background:#0e1117;padding:16px;border-radius:12px;border:1px solid #2a2d36;}
+</style>
+""", unsafe_allow_html=True)
 
 # =========================================================
 # HELPERS
@@ -224,21 +181,6 @@ defaults = {
 
 for k, v in defaults.items():
     st.session_state.setdefault(k, v)
-
-# =========================================================
-# APPLY SETTINGS (FROM SETTINGS PAGE)
-# =========================================================
-
-if st.session_state.get("default_company"):
-    st.session_state.company = st.session_state.default_company
-
-if st.session_state.get("default_prefix"):
-    st.session_state.prefix = st.session_state.default_prefix
-
-st.session_state.stamp_offset_x = st.session_state.get("default_offset_x", 0)
-st.session_state.stamp_offset_y = st.session_state.get("default_offset_y", 0)
-
-
 
 # =========================================================
 # UPLOAD
@@ -708,5 +650,5 @@ with right:
 
 
 # =========================================================
-# 🟢 VERSION | END | : V17.2.0 Multipage
+# 🟢 VERSION | END | : V17.0.1
 # =========================================================
